@@ -1,0 +1,145 @@
+#!/usr/bin/env ansible-playbook  --limit=vagrant
+
+# Run as: ./setupServer.yml --limit=vagrant
+
+---
+- hosts: all
+
+  vars_files:
+    - vars.yml
+
+  become: True
+
+  pre_tasks:
+    # - name: Add to apt repositories  # probably not going to use Guard/Rake which is what this was for
+    #   apt_repository: repo='ppa:brightbox/ruby-ng' state=present
+
+    - name: Update apt cache and do safe upgrades
+      apt: update_cache=yes upgrade=safe
+
+    - name: Install apt utility
+      apt: name=software-properties-common state=present
+
+    - name: Add apt repository for ruby
+      apt_repository: repo='ppa:brightbox/ruby-ng' state=present
+
+    - name: Update apt cache and do safe upgrades
+      apt: update_cache=yes upgrade=safe
+
+    - name: Install packages
+      apt: name={{ item }} state=present
+      with_items:
+      - nginx
+      - nodejs
+      - python3-pip
+      - python-pip
+      - python-virtualenv
+      - python-dev
+      - libffi-dev
+      - supervisor
+      - nodejs
+      - npm
+      - httpie           # command line http API utility
+      - git
+      - openssl
+      - ruby2.3
+      - ruby2.3-dev
+      - ruby-switch
+      - multitail
+      - tree
+      - sqlite3
+
+    - name: Autoremove unused apt packages
+      command: apt-get -y autoremove
+      register: autoremove_output
+      changed_when: "'The following packages will be REMOVED' in autoremove_output.stdout"
+
+    - name: Add domain names to /etc/hosts
+      lineinfile: name='/etc/hosts' line='127.0.0.1  localhost  {{ openbel_dname }}' regexp='^127.0.0.1  localhost' state=present
+
+    - name: Set hostname in /etc/hostname
+      lineinfile: name='/etc/hostname' line='{{ openbel_dname }}' regexp='openbel' state=present
+
+    - name: Create API root directory
+      file: path={{ api_root }} owner=ubuntu group=ubuntu state=directory mode=0755
+
+    - name: Create Web root directory
+      file: path={{ web_root }} owner=ubuntu group=ubuntu state=directory mode=0755
+
+    - name: Create rubies directory
+      file: path=/opt/rubies owner=ubuntu group=ubuntu state=directory mode=0755
+
+    - name: Add bash aliases file
+      copy: src=files/bash/bash_aliases dest=/home/vagrant/.bash_aliases owner=vagrant group=vagrant mode=0644
+
+    - name: Add bash profile file
+      copy: src=files/bash/bash_profile dest=/home/vagrant/.bash_profile owner=vagrant group=vagrant mode=0644
+
+
+  roles:
+    # Basic server setup
+    - role: bennojoy.ntp
+    - role: malk.java8-oracle
+    - role: bennojoy.mongo_mongod
+      mongod_datadir_prefix: "{{ mongodb_datadir }}"
+      mongod_replication: false
+      mongod_port: 2700
+
+  tasks:
+    - name: Remove default nginx site
+      file: path=/etc/nginx/sites-available/default state=absent
+      tags: nginx
+
+    # - name: Install Ruby Gems -- Rake, Guard, etc  # probably not going to use this
+    #   gem: name=rake state=latest
+    #   with_items:
+    #     - rake
+    #     - guard
+    #     - guard-rake
+
+    - name: Setup locate command database
+      command: updatedb  creates=/var/lib/mlocate/mlocate.db
+
+    - name: Install chruby
+      script: files/scripts/install-chruby.sh creates=/usr/local/bin/chruby-exec
+
+    - name: Setup chruby
+      copy: src=files/scripts/chruby.sh  dest=/etc/profile.d/chruby.sh  owner=root group=root mode=0644
+
+    - name: Install jruby
+      script: files/scripts/install-jruby.sh creates=/opt/rubies
+
+    # - name: Install Ruby Gems
+    #   gem: name={{ item }} state=latest
+    #   with_items:
+    #     - openbel-api
+
+    - name: Remove default nginx site
+      file: path=/etc/nginx/sites-available/default state=absent
+      tags: nginx
+
+    - name: Setup nginx for API services
+      template: src=templates/nginx_openbelapi.jinja dest=/etc/nginx/sites-available/openbelapi
+      notify: restart nginx
+      tags: nginx
+
+    - name: Enable nginx site
+      file: src=/etc/nginx/sites-available/openbelapi dest=/etc/nginx/sites-enabled/openbelapi state=link
+      notify: restart nginx
+      tags: nginx
+
+    - name: Download Resource RDF artifact (>350Mb)
+      get_url: url={{ resource_rdf_artifact }} dest=/tmp mode=0440
+
+
+  handlers:
+    - name: restart nginx
+      service: name=nginx state=restarted
+      tags: nginx
+
+    - name: restart mongod
+      service: name=mongod state=restarted
+      tags: mongo
+
+
+

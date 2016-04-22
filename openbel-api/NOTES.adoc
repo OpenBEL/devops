@@ -1,0 +1,5 @@
+Tony recommended chruby (https://github.com/postmodern/chruby) for managing jruby versions.
+
+Need to use JRuby 9.0.5.0 or later - not 1.7.*
+
+

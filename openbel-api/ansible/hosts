@@ -1,0 +1,9 @@
+[openbelapi:children]
+vagrant
+openbeldev
+
+[vagrant]
+openbel.dev
+
+[openbeldev]
+dev.openbel.org

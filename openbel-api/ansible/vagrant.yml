@@ -1,0 +1,11 @@
+#!/usr/bin/env ansible-playbook
+
+# Run as: ./vagrant.yml
+
+---
+- hosts: openbeldev
+  remote_user: vagrant
+
+  tasks:
+    - include: setupServer.yml
+

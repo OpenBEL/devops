@@ -1,0 +1,62 @@
+= README
+William Hayes <william.s.hayes@gmail.com>
+v1.0, 2016-04-11
+:toc:
+:source-highlighter: pygments
+
+
+== openbelapi-devops
+OpenBEL API DevOps - Vagrant and Ansible files
+
+== Setup
+
+Requirements:
+
+* Vagrant - https://www.vagrantup.com/
+* VirtualBox - https://www.virtualbox.org/wiki/Downloads
+
+Instructions:
+----
+mkdir openbel
+cd openbel
+git clone https://github.com/OpenBEL/devops.git
+----
+
+
+Set OPENBELAPIHOME environment variable to location of the openbel directory created above, for example:
+----
+export OPENBELAPIHOME=~/openbel
+----
+
+Now start vagrant
+----
+cd devops/vagrant
+vagrant up
+----
+
+Add following to your ~/.ssh/config file in oder to use `ssh openbel.dev` below
+----
+Host openbel.dev
+  StrictHostKeyChecking no
+  HostName openbel.dev
+  User ubuntu
+  IdentityFile ~/.ssh/cekeeper.pem
+----
+
+Add to your local domain resolver - e.g. for linux or Macs in /etc/hosts:
+----
+192.168.33.11 openbel.dev
+----
+
+== Working with OpenBEL API using Vagrant
+
+After starting vagrant using `vagrant up`, you now have the following available:
+
+* Web server: http://openbel.dev
+* API endpoint http://openbel.dev/api
+* Access the server:  'ssh openbel.dev'
+* Forwarded ports:
+** HTTP: 8080
+** Mongod: 27017
+** MongoWebStatus: 28017
+

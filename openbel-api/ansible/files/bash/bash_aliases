@@ -1,0 +1,9 @@
+alias rs='source ~/.bashrc'
+alias oa="cd /openbel/api"
+alias ow="cd /openbel/web"
+
+# General
+alias x='chmod a+x'
+alias sp='sudo supervisorctl'
+
+alias c=clear

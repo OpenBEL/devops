@@ -1,0 +1,18 @@
+server {
+    listen        0.0.0.0:80;
+    server_name   $hostname;
+    access_log    /var/log/nginx/access.log main;
+    error_log     /var/log/nginx/error.log info;
+
+    location /api {
+        proxy_pass               http://localhost:9000;
+        proxy_set_header         Host $host;
+        proxy_set_header         X-Real-IP $remote_addr;
+        proxy_set_header         X-Real-Base-URL $scheme://$host;
+        proxy_set_header         X-Real-URL $scheme://$host$request_uri;
+        proxy_buffer_size        128k;
+        proxy_buffers            4 256k;
+        proxy_busy_buffers_size  256k;
+        client_max_body_size     50M;
+    }
+}
