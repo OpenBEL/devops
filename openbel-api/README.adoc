@@ -23,32 +23,21 @@ git clone https://github.com/OpenBEL/devops.git
 ----
 
 
-Set OPENBELAPIHOME environment variable to location of the openbel directory created above, for example:
-----
-export OPENBELAPIHOME=~/openbel
-----
-
 Now start vagrant
 ----
-cd devops/vagrant
+cd devops/openbel-api/vagrant
 vagrant up
 ----
 
-Add following to your ~/.ssh/config file in oder to use `ssh openbel.dev` below
+Access your the new server
 ----
-Host openbel.dev
-  StrictHostKeyChecking no
-  HostName openbel.dev
-  User ubuntu
-  IdentityFile ~/.ssh/cekeeper.pem
+vagrant ssh
 ----
 
-Add to your local domain resolver - e.g. for linux or Macs in /etc/hosts:
-----
-192.168.33.11 openbel.dev
-----
 
-== Working with OpenBEL API using Vagrant
+== [FUTURE] Working with OpenBEL API using Vagrant
+
+**This is not setup yet**
 
 After starting vagrant using `vagrant up`, you now have the following available:
 
