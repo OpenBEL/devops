@@ -5,7 +5,7 @@ v1.0, 2016-04-11
 :source-highlighter: pygments
 
 
-== openbelapi-devops
+== OpenBEL API
 OpenBEL API DevOps - Vagrant and Ansible files
 
 == Setup
