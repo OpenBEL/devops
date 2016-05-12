@@ -1,0 +1,10 @@
+[program:openbelapi]
+command=/openbel/scripts/start-openbel-api.sh
+exitcodes=130,143
+stopsignal=INT
+log_stdout=true
+log_stderr=true
+redirect_stderr=true
+stdout_logfile=syslog
+user=ubuntu
+autostart=true

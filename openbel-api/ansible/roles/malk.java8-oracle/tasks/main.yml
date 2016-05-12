@@ -10,6 +10,11 @@
   args:
     creates: /etc/oracle-java-8-licence-acceptance
 
+- name: Install Oracle Java 8 certificates
+  apt: name={{item}} state=latest
+  with_items:
+    - ca-certificates
+
 - name: Install Oracle Java 8
   apt: name={{item}} state=latest
   with_items:

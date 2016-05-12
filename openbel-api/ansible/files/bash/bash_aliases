@@ -1,9 +1,11 @@
-alias rs='source ~/.bashrc'
+alias rs='source ~/.bash_profile'
 alias oa="cd /openbel/api"
-alias ow="cd /openbel/web"
+alias ow="cd /openbel/web/belmgr/webeditor"
+alias sup="sudo supervisorctl"
 
 # General
 alias x='chmod a+x'
 alias sp='sudo supervisorctl'
 
 alias c=clear
+

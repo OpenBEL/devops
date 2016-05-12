@@ -1,7 +1,4 @@
 # Server
 
 # Application
-api_root: /openbel/api
-web_root: /openbel/web
-mongodb_datadir: /openbel/data/mongo
 

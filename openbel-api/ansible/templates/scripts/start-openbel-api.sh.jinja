@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+logger -t $0 -p notice "starting openbel-api..."
+
+export GEM_HOME={{ GEM_HOME }}
+export GEM_PATH={{ GEM_PATH }}
+export PATH={{ SCRIPT_PATH }}
+
+export JRUBY_OPTS="-J-Xmx1g"
+exec /openbel/api/bin/openbel-api --file {{ api_root }}/openbel-api-config.yml -- \
+  --threads 2:4 \
+  --port 9000 \
+  --pidfile {{data_root}}/openbel-api.pid

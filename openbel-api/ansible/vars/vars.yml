@@ -1,0 +1,28 @@
+# Server
+api_root: /openbel/api
+openbel_repos_root: /openbel/repos
+belmgr_root: /openbel/belmgr
+script_root: /openbel/scripts
+data_root: /openbel/data
+mongodb_datadir: /openbel/data/mongo
+
+# Environment vars
+SCRIPT_PATH: /opt/jruby/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+GEM_HOME: /opt/jruby/gems
+GEM_PATH: /opt/jruby/gems
+
+# Webserver
+http_port: 80
+
+# OpenBEL
+openbel_data_dir: /openbel/data
+resource_rdf_artifact_name: resource_rdf_20150611
+resource_rdf_artifact_fn: "{{ resource_rdf_artifact_name }}.tar.bz2"
+resource_rdf_artifact_local: "files/resources/{{ resource_rdf_artifact_fn }}"
+resource_rdf_artifact_remote: "http://build.openbel.org/browse/OR-RRD2-12/artifact/shared/Resource-RDF-Database-20150611/{{ resource_rdf_artifact_fn }}"
+
+resource_rdf_search_db_name: resource_search_20150611.db
+resource_rdf_search_db_fn: "{{ resource_rdf_search_db_name }}.bz2"
+resource_rdf_search_db_local: "files/resources/{{ resource_rdf_search_db_fn }}"
+resource_rdf_search_db_remote: "http://build.openbel.org/browse/OR-RSD2-11/artifact/shared/Sqlite-Database/{{ resource_rdf_search_db_fn }}"
+

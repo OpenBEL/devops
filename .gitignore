@@ -1,2 +1,3 @@
 openbel-api/vagrant/.vagrant
 openbel-api/README.html
+openbel-api/ansible/vars/personal_vars.yml

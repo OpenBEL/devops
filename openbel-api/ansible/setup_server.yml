@@ -6,16 +6,22 @@
 - hosts: all
 
   vars_files:
-    - vars.yml
+    - vars/vars.yml
+    - vars/personal_vars.yml
 
   become: True
 
-  pre_tasks:
-    # - name: Add to apt repositories  # probably not going to use Guard/Rake which is what this was for
-    #   apt_repository: repo='ppa:brightbox/ruby-ng' state=present
+  environment:
+    JRUBY_HOME: /opt/jruby
+    GEM_HOME: /opt/jruby/gems
+    GEM_PATH: /opt/jruby/gems
 
-    - name: Update apt cache and do safe upgrades
-      apt: update_cache=yes upgrade=safe
+  pre_tasks:
+
+    # Update apt and install apt packages
+
+    - name: Update apt cache
+      apt: update_cache=yes cache_valid_time=7200
 
     - name: Install apt utility
       apt: name=software-properties-common state=present
@@ -23,13 +29,22 @@
     - name: Add apt repository for ruby
       apt_repository: repo='ppa:brightbox/ruby-ng' state=present
 
-    - name: Update apt cache and do safe upgrades
-      apt: update_cache=yes upgrade=safe
+    - name: add MongoDB public GPG key
+      apt_key: id=EA312927 keyserver=hkp://keyserver.ubuntu.com state=present
+
+    - name: add MongoDB stable repository (for Ubuntu)
+      apt_repository: repo='deb http://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.2 multiverse' state=present update_cache=yes
+
+    - name: Update apt cache and a full upgrade
+      apt: update_cache=yes cache_valid_time=7200 upgrade=full
+
+    # - fail:
 
     - name: Install packages
       apt: name={{ item }} state=present
       with_items:
       - nginx
+      - mongodb-org
       - nodejs
       - python3-pip
       - python-pip
@@ -48,11 +63,28 @@
       - multitail
       - tree
       - sqlite3
+      - libsqlite3-dev
 
     - name: Autoremove unused apt packages
+      # apt: autoremove=yes
       command: apt-get -y autoremove
       register: autoremove_output
       changed_when: "'The following packages will be REMOVED' in autoremove_output.stdout"
+
+
+    # Setup Github SSH config
+    - name: Copy personal ssh key for Github
+      copy: src={{ github_private_key }} dest=/home/ubuntu/.ssh/github.pem owner=ubuntu group=ubuntu mode=0600
+
+    - name: Create SSH config file
+      copy: src=files/ssh/ssh_config dest=/home/ubuntu/.ssh/config owner=ubuntu group=ubuntu mode=0644
+
+    - name: Copy .gitconfig file
+      template: src=templates/gitconfig.jinja dest=/home/ubuntu/.gitconfig owner=ubuntu group=ubuntu mode=0644
+
+    - name: Add mongodb conf file
+      template: src=templates/mongod.conf.jinja dest=/etc/mongod.conf
+      notify: restart mongod
 
     - name: Add domain names to /etc/hosts
       lineinfile: name='/etc/hosts' line='127.0.0.1  localhost  {{ openbel_dname }}' regexp='^127.0.0.1  localhost' state=present
@@ -60,42 +92,46 @@
     - name: Set hostname in /etc/hostname
       lineinfile: name='/etc/hostname' line='{{ openbel_dname }}' regexp='openbel' state=present
 
-    - name: Create API root directory
-      file: path={{ api_root }} owner=ubuntu group=ubuntu state=directory mode=0755
-
-    - name: Create Web root directory
-      file: path={{ web_root }} owner=ubuntu group=ubuntu state=directory mode=0755
-
-    - name: Create rubies directory
-      file: path=/opt/rubies owner=ubuntu group=ubuntu state=directory mode=0755
-
     - name: Add bash aliases file
-      copy: src=files/bash/bash_aliases dest=/home/vagrant/.bash_aliases owner=vagrant group=vagrant mode=0644
+      copy: src=files/bash/bash_aliases dest=/home/ubuntu/.bash_aliases owner=ubuntu group=ubuntu mode=0644
 
     - name: Add bash profile file
-      copy: src=files/bash/bash_profile dest=/home/vagrant/.bash_profile owner=vagrant group=vagrant mode=0644
+      template: src=templates/bash_profile.jinja dest=/home/ubuntu/.bash_profile owner=ubuntu group=ubuntu mode=0644
 
 
   roles:
     # Basic server setup
-    - role: bennojoy.ntp
+    - role: geerlingguy.ntp
+      ntp_timezone: America/New_York
     - role: malk.java8-oracle
-    - role: bennojoy.mongo_mongod
-      mongod_datadir_prefix: "{{ mongodb_datadir }}"
-      mongod_replication: false
-      mongod_port: 2700
 
   tasks:
+    - name: Create directories
+      file: path={{ item }} owner=ubuntu group=ubuntu state=directory mode=0755
+      with_items:
+        - "{{ api_root }}"
+        - "{{ openbel_repos_root }}"
+        - "{{ belmgr_root }}"
+        - "{{ script_root }}"
+        - "{{ data_root }}"
+        - /opt/rubies
+
+    - name: Clone openbel github repos
+      git:  repo={{item.repo}} version={{item.version}} dest={{item.dest}} accept_hostkey=yes
+      become: yes
+      become_user: ubuntu
+      with_items:
+        # - {repo: 'git@github.com:OpenBEL/openbel-api.git', dest: '{{ api_root }}', version: 'next'}
+        - {repo: 'git@github.com:OpenBEL/bel_parser.git', dest: '{{ openbel_repos_root }}/bel_parser', version: 'master'}
+        - {repo: 'git@github.com:OpenBEL/bel.rb.git', dest: '{{ openbel_repos_root }}/bel.rb', version: 'next'}
+        - {repo: 'git@github.com:OpenBEL/belmgr.git', dest: '{{ belmgr_root }}', version: 'master'}
+        - {repo: 'git@github.com:OpenBEL/bel.rb-rdf-jena.git', dest: '{{ openbel_repos_root }}/bel.rb-rdf-jena', version: 'next'}
+        - {repo: 'git@github.com:OpenBEL/bel.rb-search-sqlite.git', dest: '{{ openbel_repos_root }}/bel.rb-search-sqlite', version: 'next'}
+        - {repo: 'git@github.com:abargnesi/rdf-jena.git', dest: '{{ openbel_repos_root }}/rdf-jena', version: 'master'}
+
     - name: Remove default nginx site
       file: path=/etc/nginx/sites-available/default state=absent
       tags: nginx
-
-    # - name: Install Ruby Gems -- Rake, Guard, etc  # probably not going to use this
-    #   gem: name=rake state=latest
-    #   with_items:
-    #     - rake
-    #     - guard
-    #     - guard-rake
 
     - name: Setup locate command database
       command: updatedb  creates=/var/lib/mlocate/mlocate.db
@@ -109,10 +145,13 @@
     - name: Install jruby
       script: files/scripts/install-jruby.sh creates=/opt/rubies
 
-    # - name: Install Ruby Gems
-    #   gem: name={{ item }} state=latest
-    #   with_items:
-    #     - openbel-api
+
+    # TODO: this is not working to disable the warnings when running 'mongo' client
+    - name: Add init server to disable transparent hugepages for mongodb
+      template: src=templates/disable-transparent-hugepages.jinja dest=/etc/init.d/disable-transparent-hugepages mode=755
+
+    - name: Ensure disable transparent hugepages daemon is started
+      service: name=disable-transparent-hugepages state=started
 
     - name: Remove default nginx site
       file: path=/etc/nginx/sites-available/default state=absent
@@ -128,9 +167,79 @@
       notify: restart nginx
       tags: nginx
 
-    - name: Download Resource RDF artifact (>350Mb)
-      get_url: url={{ resource_rdf_artifact }} dest=/tmp mode=0440
+    - name: Resource RDF artifact exists?
+      stat: path="{{ openbel_data_dir }}/{{ resource_rdf_artifact_name }}"
+      register: does_resource_rdf_artifact
 
+    - name: Download Resource RDF artifact (>350Mb)
+      local_action: get_url url={{ resource_rdf_artifact_remote }} dest={{ resource_rdf_artifact_local }}
+      tags: rdf_resources
+      when: does_resource_rdf_artifact.stat.exists == False
+
+    - name: Extract Resource RDF artifact
+      unarchive: src="{{ resource_rdf_artifact }}" dest={{ data_root }} owner=ubuntu group=ubuntu
+      tags: rdf_resources
+      when: does_resource_rdf_artifact.stat.exists == False
+
+    - name: Resource RDF artifact exists?
+      stat: path="{{ openbel_data_dir }}/{{ resource_rdf_search_db_name }}"
+      register: does_resource_rdf_search_db
+
+    - name: Download Resource RDF search database (>350Mb)
+      local_action: get_url url={{ resource_rdf_search_db_remote }} dest={{ resource_rdf_search_db_local }}
+      tags: rdf_resources
+      when: does_resource_rdf_search_db.stat.exists == False
+
+    - name: Extract Resource RDF search database (>1.4Gb)
+      unarchive: src="{{ resource_rdf_search_db }}" dest={{ data_root }} owner=ubuntu group=ubuntu
+      tags: rdf_resources
+      when: does_resource_rdf_search_db.stat.exists == False
+
+    - name: Set up authorized_keys for the ubuntu user
+      authorized_key: user=ubuntu  key="{{ item }}"
+      with_file:
+        - files/ssh/vagrant.pub
+
+    - name: Setup Openbel API configuration file
+      template: src=templates/openbel-api-config.yml.jinja dest={{ api_root }}/openbel-api-config.yml
+      notify: restart openbelapi
+
+    - name: Add script for supervisor to start openbel api
+      template: src=templates/scripts/start-openbel-api.sh.jinja  dest={{ script_root}}/start-openbel-api.sh owner=ubuntu
+
+    - name: Copy gem build/install script
+      copy: src=files/scripts/build-gems.sh  dest={{ script_root }}/build-gems.sh  owner=ubuntu group=ubuntu mode=0644
+
+    - name: Make scripts executable
+      file: path="{{ script_root }}/{{ item }}"  mode=u+x,g+x,o+x
+      with_items:
+        - start-openbel-api.sh
+        - build-gems.sh
+
+    - name: Make gems install directory owned by ubuntu
+      file: path=/opt/jruby/gems owner=ubuntu  group=ubuntu mode=0755 state=directory recurse=yes
+
+    - name: Build gems
+      command: "{{ script_root }}/build-gems.sh"
+      become: yes
+      become_user: ubuntu
+
+
+    # TODO: fix following two tasks -- may need to use same options for the first on the second task
+    # - name: Build openbel api gem install
+    #   shell:  source /home/ubuntu/.bash_profile && gem build .gemspec
+    #   args:
+    #     executable: /bin/bash
+    #     chdir: /openbel/api
+
+    # - name: Install openbel api gems
+    #   shell: gem install openbel-api-*-java.gem --no-user-install --install-dir .gems  chdir=/openbel/api  executable=/bin/bash
+    #   environment:
+    #     PATH: /opt/jruby/bin:/opt/rubies/jruby-9.0.5.0/bin:/bin:/usr/bin:/usr/local/bin
+
+    - name: Add supervisor configuration for Openbel API
+      template: src=templates/supervisor-openbelapi.jinja dest=/etc/supervisor/conf.d/openbel-api.conf
+      notify: restart supervisor
 
   handlers:
     - name: restart nginx
@@ -141,5 +250,9 @@
       service: name=mongod state=restarted
       tags: mongo
 
+    - name: retart openbel api
+      svc: name=openbelapi state=restarted
 
-
+    - name: restart supervisor
+      service: name=supervisor state=restarted
+      tags: supervisor

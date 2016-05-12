@@ -1,7 +1,0 @@
-# Server
-
-# Webserver
-http_port: 80
-
-# OpenBEL
-resource_rdf_artifact: http://build.openbel.org/browse/OR-RRD2-12/artifact/shared/Resource-RDF-Database-20150611/resource_rdf_20150611.tar.bz2

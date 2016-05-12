@@ -1,0 +1,28 @@
+if [ -f ~/.bashrc ]; then
+   source ~/.bashrc
+fi
+
+source /usr/local/share/chruby/chruby.sh
+
+export JRUBY_HOME=/opt/jruby
+export JRUBY_OPTS="--dev"
+export GEM_HOME={{ GEM_HOME }}
+export GEM_PATH={{ GEM_PATH }}
+
+pathmunge () {
+if ! echo $PATH | /bin/egrep -q "(^|:)$1($|:)" ; then
+   if [ "$2" = "after" ] ; then
+      PATH=$PATH:$1
+   else
+      PATH=$1:$PATH
+   fi
+fi
+}
+
+if [ -d "$JRUBY_HOME/bin" ] ; then
+  pathmunge $JRUBY_HOME/bin
+fi
+
+
+export PATH
+

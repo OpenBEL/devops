@@ -15,25 +15,60 @@ Requirements:
 * Vagrant - https://www.vagrantup.com/
 * VirtualBox - https://www.virtualbox.org/wiki/Downloads
 
-Instructions:
+=== Setup Instructions:
+
 ----
-mkdir openbel
-cd openbel
-git clone https://github.com/OpenBEL/devops.git
+export OPENBELAPIHOME=~/openbel   # or any other directory you wish to use
+mkdir $OPENBELAPIHOME
+cd $OPENBELAPIHOME
+git clone git://github.com/OpenBEL/devops.git
+git clone git://github.com/OpenBEL/openbel-api.git api
+
+# Next branch is for future development
+pushd api
+git checkout next
+popd
+
+cp devops/openbel-api/ansible/files/ssh/vagrant.pem ~/.ssh   # for ssh access to Vagrant machine
 ----
 
+
+Add this to your ~/.ssh/config file:
+----
+Host openbel.dev
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+  PasswordAuthentication no
+  IdentitiesOnly yes
+  HostName openbel.dev
+  User ubuntu
+  IdentityFile ~/.ssh/vagrant.pem
+----
+
+Add this to your /etc/hosts file
+----
+192.168.33.11 openbel.dev
+192.168.33.11 api.openbel.dev
+----
 
 Now start vagrant
 ----
-cd devops/openbel-api/vagrant
+cd $OPENBELAPIHOME/devops/openbel-api/vagrant
 vagrant up
 ----
 
 Access your the new server
 ----
-vagrant ssh
+ssh openbel.dev
 ----
 
+=== Endpoints of interest:
+
+* http://api.openbel.dev
+* MongoDB Status: http://openbel.dev:28017
+
+From the vagrant directory - you can also use `vagrant ssh` to get access to the
+Vagrant machine as the vagrant user
 
 == [FUTURE] Working with OpenBEL API using Vagrant
 
@@ -41,11 +76,12 @@ vagrant ssh
 
 After starting vagrant using `vagrant up`, you now have the following available:
 
-* Web server: http://openbel.dev
-* API endpoint http://openbel.dev/api
-* Access the server:  'ssh openbel.dev'
-* Forwarded ports:
-** HTTP: 8080
-** Mongod: 27017
-** MongoWebStatus: 28017
+* BELMgr: http://belmgr.openbel.dev
+
+----
+mkdir web
+pushd web
+git clone git://github.com/OpenBEL/belmgr.git
+popd
+----
 
