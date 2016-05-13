@@ -5,7 +5,7 @@ export JRUBY_HOME=/opt/jruby
 export GEM_HOME=/opt/jruby/gems
 export GEM_PATH=/opt/jruby/gems
 
-cd /openbel/repos/bel_parser.rb
+cd /openbel/repos/bel_parser
 git pull
 gem build .gemspec-java
 gem install *.gem
